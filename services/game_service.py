@@ -61,3 +61,63 @@ def get_all_games():
     rows = cursor.fetchall()
     conn.close()
     return rows
+
+def get_game_by_id(game_id: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, title, platform, genre_mode, notes, created_at
+        FROM games
+        WHERE id = ?
+    """, (game_id,))
+
+    row = cursor.fetchone()
+    conn.close()
+    return row
+
+
+def update_game(game_id: int, title: str, platform: str = "", genre_mode: str = "", notes: str = ""):
+    error = validate_game_title(title)
+    if error:
+        return False, error
+
+    title = title.strip()
+    platform = platform.strip()
+    genre_mode = genre_mode.strip()
+    notes = notes.strip()
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE games
+            SET title = ?, platform = ?, genre_mode = ?, notes = ?
+            WHERE id = ?
+        """, (title, platform, genre_mode, notes, game_id))
+
+        conn.commit()
+        conn.close()
+        return True, "Game updated successfully."
+
+    except sqlite3.IntegrityError:
+        return False, "A game with that title already exists."
+
+    except Exception as e:
+        return False, f"Error updating game: {e}"
+
+
+def delete_game(game_id: int):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM games WHERE id = ?", (game_id,))
+        conn.commit()
+        conn.close()
+
+        return True, "Game deleted successfully."
+
+    except Exception as e:
+        return False, f"Error deleting game: {e}"
